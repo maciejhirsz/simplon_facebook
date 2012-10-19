@@ -1,0 +1,29 @@
+{
+    "name": "simplon/facebook",
+    "description": "Facebook Library",
+    "homepage": "https://github.com/fightbulc/simplon_facebook",
+    "version": "0.5.0",
+    "type": "library",
+    "keywords": ["facebook"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tino Ehrich",
+            "email": "opensource@efides.com",
+            "role": "developer"
+        }
+    ],
+
+    "minimum-stability": "dev",
+
+    "require": {
+        "php": ">=5.3.3",
+        "fightbulc/facebook-php-sdk": "*"
+    },
+
+    "autoload": {
+        "psr-0": {
+            "Simplon\\Facebook\\": "src/"
+        }
+    }
+}
