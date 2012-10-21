@@ -4,31 +4,12 @@
 
   class Facebook
   {
-    /** @var Facebook */
-    private static $_instance;
-
     /** @var \Facebook */
     private $_facebookSdk;
 
     private $_appId;
     private $_appSecret;
     private $_appPermissions;
-
-    // ##########################################
-
-    /**
-     * @static
-     * @return Facebook
-     */
-    public static function getInstance()
-    {
-      if(! Facebook::$_instance)
-      {
-        Facebook::$_instance = new Facebook();
-      }
-
-      return Facebook::$_instance;
-    }
 
     // ##########################################
 
