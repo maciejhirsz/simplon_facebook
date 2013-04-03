@@ -123,7 +123,7 @@
         /**
          * @param $accessToken
          * @param bool $retry
-         * @return array
+         * @return FacebookUserGraphVo
          * @throws \Exception
          */
         public function getUserData($accessToken, $retry = TRUE)
@@ -135,7 +135,9 @@
                     'access_token' => $accessToken
                 ];
 
-                return $this->_requestGraph('/me', $params);
+                $data = $this->_requestGraph('/me', $params);
+
+                return new FacebookUserGraphVo($data);
             }
             catch(\Exception $e)
             {
@@ -147,7 +149,7 @@
                     return $this->getUserData($accessToken, FALSE);
                 }
 
-                throw new \Exception("{__CLASS__}/{__METHOD__}: {$e->getMessage()}", 500);
+                throw new \Exception(__METHOD__ . ": {$e->getMessage()}", 500);
             }
         }
 
@@ -168,7 +170,7 @@
 
             if(strpos($objectType, ':') === FALSE)
             {
-                throw new \Exception("{__CLASS__}/{__METHOD__}: OG object type format is invalid. Sample valid format: myapp:like", 500);
+                throw new \Exception(__METHOD__ . ": OG object type format is invalid. Sample valid format: myapp:like", 500);
             }
 
             try
@@ -246,7 +248,7 @@
                     $errorMetas[] = "SUBCODE={$data['error']['error_subcode']}";
                 }
 
-                throw new \Exception(__CLASS__ . ': ' . join(' --> ', $errorMetas), 500);
+                throw new \Exception(join(' --> ', $errorMetas), 500);
             }
 
             // return data
