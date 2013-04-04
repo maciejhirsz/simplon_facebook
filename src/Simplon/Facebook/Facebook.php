@@ -157,20 +157,20 @@
 
         /**
          * @param $accessToken
+         * @param $actionType
          * @param $objectType
-         * @param $objectAction
-         * @param $objectActionValue
+         * @param $objectValue
          * @return mixed
          * @throws \Exception
          */
-        public function sendOpenGraphItem($accessToken, $objectType, $objectAction, $objectActionValue)
+        public function sendOpenGraphItem($accessToken, $actionType, $objectType, $objectValue)
         {
+            $actionType = strtolower($actionType);
             $objectType = strtolower($objectType);
-            $objectAction = strtolower($objectAction);
 
-            if(strpos($objectType, ':') === FALSE)
+            if(strpos($actionType, ':') === FALSE)
             {
-                throw new \Exception(__METHOD__ . ": OG object type format is invalid. Sample valid format: myapp:like", 500);
+                throw new \Exception(__METHOD__ . ": OG action-type format is invalid. Sample valid format: myapp:like", 500);
             }
 
             try
@@ -178,10 +178,47 @@
                 $params = [
                     'access_token' => $accessToken,
                     'method'       => 'POST',
-                    $objectAction  => $objectActionValue,
+                    $objectType    => $objectValue,
                 ];
 
-                return $this->_submitToGraph("/me/{$objectType}", $params);
+                $response = $this->_submitToGraph("/me/{$actionType}", $params);
+
+                if(isset($response['id']))
+                {
+                    return $response['id'];
+                }
+
+                return FALSE;
+            }
+            catch(\Exception $e)
+            {
+                throw new \Exception($e->getMessage(), 500);
+            }
+        }
+
+        // ##########################################
+
+        /**
+         * @param $accessToken
+         * @param $graphItemId
+         * @return mixed
+         * @throws \Exception
+         */
+        public function removeOpenGraphItem($accessToken, $graphItemId)
+        {
+            if(empty($graphItemId))
+            {
+                throw new \Exception(__METHOD__ . ": Missing graphItemId.", 500);
+            }
+
+            try
+            {
+                $params = [
+                    'access_token' => $accessToken,
+                    'method'       => 'DELETE',
+                ];
+
+                return $this->_submitToGraph("/me/{$graphItemId}", $params);
             }
             catch(\Exception $e)
             {
@@ -213,15 +250,8 @@
                 ->setReturnTransfer(TRUE)
                 ->execute();
 
-            // read json
-            $data = json_decode($response, TRUE);
-
-            // get data from string if NOT-JSON response
-            if(is_null($data))
-            {
-                $data = [];
-                parse_str($response, $data);
-            }
+            // parse response
+            $data = $this->_parseGraphResponse($response);
 
             // handle error response
             if(isset($data['error']))
@@ -258,9 +288,30 @@
         // ##########################################
 
         /**
+         * @param $response
+         * @return array|mixed
+         */
+        protected function _parseGraphResponse($response)
+        {
+            // try json
+            $data = json_decode($response, TRUE);
+
+            // get data from string if NOT-JSON response
+            if(is_null($data))
+            {
+                $data = [];
+                parse_str($response, $data);
+            }
+
+            return $data;
+        }
+
+        // ##########################################
+
+        /**
          * @param $resourcePath
          * @param array $params
-         * @return mixed
+         * @return array|mixed
          * @throws \Exception
          */
         protected function _submitToGraph($resourcePath, array $params)
@@ -281,6 +332,7 @@
                 ->setReturnTransfer(TRUE)
                 ->execute();
 
-            return $response;
+            // parse response
+            return $this->_parseGraphResponse($response);
         }
     }
