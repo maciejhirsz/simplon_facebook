@@ -218,7 +218,7 @@
                     'method'       => 'DELETE',
                 ];
 
-                return $this->_submitToGraph("/me/{$graphItemId}", $params);
+                return $this->_submitToGraph("/{$graphItemId}", $params);
             }
             catch(\Exception $e)
             {
