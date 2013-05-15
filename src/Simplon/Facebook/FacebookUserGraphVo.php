@@ -21,9 +21,9 @@
 
         public function __construct(array $data)
         {
-            foreach($data as $key => $val)
+            foreach ($data as $key => $val)
             {
-                switch($key)
+                switch ($key)
                 {
                     case 'id':
                         $this->_id = $val;

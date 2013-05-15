@@ -9,10 +9,14 @@
         private $_appPermissions;
         private $_graphUrl = "https://graph.facebook.com";
 
+        private $_classErrorCode = 10000;
+        private $_fetchErrorCode = 20000;
+
         // ##########################################
 
         /**
          * @param $appId
+         *
          * @return Facebook
          */
         public function setAppId($appId)
@@ -36,6 +40,7 @@
 
         /**
          * @param $appSecret
+         *
          * @return Facebook
          */
         public function setAppSecret($appSecret)
@@ -59,6 +64,7 @@
 
         /**
          * @param array $appPermissions
+         *
          * @return Facebook
          */
         public function setAppPermissions(array $appPermissions)
@@ -96,6 +102,7 @@
 
         /**
          * @param $accessToken
+         *
          * @return string|bool
          */
         public function getExtendedAccessToken($accessToken)
@@ -110,7 +117,7 @@
 
             $response = $this->_requestGraph('/oauth/access_token', $params);
 
-            if(isset($response['access_token']))
+            if (isset($response['access_token']))
             {
                 return $response['access_token'];
             }
@@ -123,8 +130,9 @@
         /**
          * @param $accessToken
          * @param bool $retry
+         *
          * @return FacebookUserGraphVo
-         * @throws \Exception
+         * @throws FacebookException
          */
         public function getUserData($accessToken, $retry = TRUE)
         {
@@ -139,17 +147,17 @@
 
                 return new FacebookUserGraphVo($data);
             }
-            catch(\Exception $e)
+            catch (FacebookException $e)
             {
                 // retry in case facebook wasnt quick enough to update accessToken remotely
-                if($retry !== FALSE && stripos($e->getMessage(), 'CODE=190') !== FALSE)
+                if ($retry !== FALSE && $e->getCode() !== 190)
                 {
                     sleep(3); // lets be sure and wait 3 seconds
 
                     return $this->getUserData($accessToken, FALSE);
                 }
 
-                throw new \Exception(__METHOD__ . ": {$e->getMessage()}", 500);
+                throw new FacebookException($e->getMessage(), 'FetchError', $this->_fetchErrorCode);
             }
         }
 
@@ -160,17 +168,18 @@
          * @param $actionType
          * @param $objectType
          * @param $objectValue
-         * @return mixed
-         * @throws \Exception
+         *
+         * @return bool
+         * @throws FacebookException
          */
         public function sendOpenGraphItem($accessToken, $actionType, $objectType, $objectValue)
         {
             $actionType = strtolower($actionType);
             $objectType = strtolower($objectType);
 
-            if(strpos($actionType, ':') === FALSE)
+            if (strpos($actionType, ':') === FALSE)
             {
-                throw new \Exception(__METHOD__ . ": OG action-type format is invalid. Sample valid format: myapp:like", 500);
+                throw new FacebookException(__METHOD__ . ": OG action-type format is invalid. Sample valid format: myapp:like", 'ClassError', $this->_classErrorCode);
             }
 
             try
@@ -183,16 +192,16 @@
 
                 $response = $this->_submitToGraph("/me/{$actionType}", $params);
 
-                if(isset($response['id']))
+                if (isset($response['id']))
                 {
                     return $response['id'];
                 }
 
                 return FALSE;
             }
-            catch(\Exception $e)
+            catch (FacebookException $e)
             {
-                throw new \Exception($e->getMessage(), 500);
+                throw new FacebookException($e->getMessage(), $e->getType(), $e->getCode(), $e->getSubcode());
             }
         }
 
@@ -201,14 +210,15 @@
         /**
          * @param $accessToken
          * @param $graphItemId
-         * @return mixed
-         * @throws \Exception
+         *
+         * @return array|mixed
+         * @throws FacebookException
          */
         public function removeOpenGraphItem($accessToken, $graphItemId)
         {
-            if(empty($graphItemId))
+            if (empty($graphItemId))
             {
-                throw new \Exception(__METHOD__ . ": Missing graphItemId.", 500);
+                throw new FacebookException(__METHOD__ . ": Missing graphItemId", 'ClassError', $this->_classErrorCode);
             }
 
             try
@@ -220,9 +230,9 @@
 
                 return $this->_submitToGraph("/{$graphItemId}", $params);
             }
-            catch(\Exception $e)
+            catch (FacebookException $e)
             {
-                throw new \Exception($e->getMessage(), 500);
+                throw new FacebookException($e->getMessage(), $e->getType(), $e->getCode(), $e->getSubcode());
             }
         }
 
@@ -231,15 +241,16 @@
         /**
          * @param $resourcePath
          * @param array $params
-         * @return array
-         * @throws \Exception
+         *
+         * @return array|mixed
+         * @throws FacebookException
          */
         protected function _requestGraph($resourcePath, array $params)
         {
             // make sure that we have what we need
-            if(! $resourcePath)
+            if (!$resourcePath)
             {
-                throw new \Exception("Cannot request graph due to missing resourcePath.", 500);
+                throw new FacebookException("Cannot request graph due to missing resourcePath.", 'ClassError', $this->_classErrorCode);
             }
 
             // build URL
@@ -254,31 +265,34 @@
             $data = $this->_parseGraphResponse($response);
 
             // handle error response
-            if(isset($data['error']))
+            if (isset($data['error']))
             {
-                $errorMetas = ['Failed graph request.'];
+                $errorMessage = NULL;
+                $errorType = NULL;
+                $errorCode = NULL;
+                $errorSubcode = NULL;
 
-                if(isset($data['error']['message']))
+                if (isset($data['error']['message']))
                 {
-                    $errorMetas[] = "MSG={$data['error']['message']}";
+                    $errorMessage = $data['error']['message'];
                 }
 
-                if(isset($data['error']['type']))
+                if (isset($data['error']['type']))
                 {
-                    $errorMetas[] = "TYPE={$data['error']['type']}";
+                    $errorType = $data['error']['type'];
                 }
 
-                if(isset($data['error']['code']))
+                if (isset($data['error']['code']))
                 {
-                    $errorMetas[] = "CODE={$data['error']['code']}";
+                    $errorCode = $data['error']['code'];
                 }
 
-                if(isset($data['error']['error_subcode']))
+                if (isset($data['error']['error_subcode']))
                 {
-                    $errorMetas[] = "SUBCODE={$data['error']['error_subcode']}";
+                    $errorSubcode = $data['error']['error_subcode'];
                 }
 
-                throw new \Exception(join(' --> ', $errorMetas), 500);
+                throw new FacebookException($errorMessage, $errorType, $errorCode, $errorSubcode);
             }
 
             // return data
@@ -289,6 +303,7 @@
 
         /**
          * @param $response
+         *
          * @return array|mixed
          */
         protected function _parseGraphResponse($response)
@@ -297,7 +312,7 @@
             $data = json_decode($response, TRUE);
 
             // get data from string if NOT-JSON response
-            if(is_null($data))
+            if (is_null($data))
             {
                 $data = [];
                 parse_str($response, $data);
@@ -311,15 +326,16 @@
         /**
          * @param $resourcePath
          * @param array $params
+         *
          * @return array|mixed
-         * @throws \Exception
+         * @throws FacebookException
          */
         protected function _submitToGraph($resourcePath, array $params)
         {
             // make sure that we have what we need
-            if(! $resourcePath)
+            if (!$resourcePath)
             {
-                throw new \Exception("Cannot submit to graph due to missing resourcePath.", 500);
+                throw new FacebookException("Cannot submit to graph due to missing resourcePath.", 'ClassError', $this->_classErrorCode);
             }
 
             // build URL
