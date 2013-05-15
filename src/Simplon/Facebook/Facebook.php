@@ -103,7 +103,7 @@
         /**
          * @param $accessToken
          *
-         * @return string|bool
+         * @return bool
          */
         public function getExtendedAccessToken($accessToken)
         {
@@ -182,27 +182,21 @@
                 throw new FacebookException(__METHOD__ . ": OG action-type format is invalid. Sample valid format: myapp:like", 'ClassError', $this->_classErrorCode);
             }
 
-            try
+            $params = [
+                'access_token' => $accessToken,
+                'method'       => 'POST',
+                $objectType    => $objectValue,
+            ];
+
+            $data = $this->_submitToGraph("/me/{$actionType}", $params);
+
+            // return graph id
+            if (isset($data['id']))
             {
-                $params = [
-                    'access_token' => $accessToken,
-                    'method'       => 'POST',
-                    $objectType    => $objectValue,
-                ];
-
-                $response = $this->_submitToGraph("/me/{$actionType}", $params);
-
-                if (isset($response['id']))
-                {
-                    return $response['id'];
-                }
-
-                return FALSE;
+                return $data['id'];
             }
-            catch (FacebookException $e)
-            {
-                throw new FacebookException($e->getMessage(), $e->getType(), $e->getCode(), $e->getSubcode());
-            }
+
+            return FALSE;
         }
 
         // ##########################################
@@ -221,82 +215,12 @@
                 throw new FacebookException(__METHOD__ . ": Missing graphItemId", 'ClassError', $this->_classErrorCode);
             }
 
-            try
-            {
-                $params = [
-                    'access_token' => $accessToken,
-                    'method'       => 'DELETE',
-                ];
+            $params = [
+                'access_token' => $accessToken,
+                'method'       => 'DELETE',
+            ];
 
-                return $this->_submitToGraph("/{$graphItemId}", $params);
-            }
-            catch (FacebookException $e)
-            {
-                throw new FacebookException($e->getMessage(), $e->getType(), $e->getCode(), $e->getSubcode());
-            }
-        }
-
-        // ##########################################
-
-        /**
-         * @param $resourcePath
-         * @param array $params
-         *
-         * @return array|mixed
-         * @throws FacebookException
-         */
-        protected function _requestGraph($resourcePath, array $params)
-        {
-            // make sure that we have what we need
-            if (!$resourcePath)
-            {
-                throw new FacebookException("Cannot request graph due to missing resourcePath.", 'ClassError', $this->_classErrorCode);
-            }
-
-            // build URL
-            $graphUrl = trim($this->_graphUrl, '/') . '/' . trim($resourcePath, '/') . '?' . http_build_query($params);
-
-            // request FB graph
-            $response = \CURL::init($graphUrl)
-                ->setReturnTransfer(TRUE)
-                ->execute();
-
-            // parse response
-            $data = $this->_parseGraphResponse($response);
-
-            // handle error response
-            if (isset($data['error']))
-            {
-                $errorMessage = NULL;
-                $errorType = NULL;
-                $errorCode = NULL;
-                $errorSubcode = NULL;
-
-                if (isset($data['error']['message']))
-                {
-                    $errorMessage = $data['error']['message'];
-                }
-
-                if (isset($data['error']['type']))
-                {
-                    $errorType = $data['error']['type'];
-                }
-
-                if (isset($data['error']['code']))
-                {
-                    $errorCode = $data['error']['code'];
-                }
-
-                if (isset($data['error']['error_subcode']))
-                {
-                    $errorSubcode = $data['error']['error_subcode'];
-                }
-
-                throw new FacebookException($errorMessage, $errorType, $errorCode, $errorSubcode);
-            }
-
-            // return data
-            return $data;
+            return $this->_submitToGraph("/{$graphItemId}", $params);
         }
 
         // ##########################################
@@ -330,6 +254,44 @@
          * @return array|mixed
          * @throws FacebookException
          */
+        protected function _requestGraph($resourcePath, array $params)
+        {
+            // make sure that we have what we need
+            if (!$resourcePath)
+            {
+                throw new FacebookException("Cannot request graph due to missing resourcePath.", 'ClassError', $this->_classErrorCode);
+            }
+
+            // build URL
+            $graphUrl = trim($this->_graphUrl, '/') . '/' . trim($resourcePath, '/') . '?' . http_build_query($params);
+
+            // request FB graph
+            $response = \CURL::init($graphUrl)
+                ->setReturnTransfer(TRUE)
+                ->execute();
+
+            // parse response
+            $data = $this->_parseGraphResponse($response);
+
+            // handle error response
+            if (isset($data['error']))
+            {
+                $this->_handleErrorResponse($data);
+            }
+
+            // return data
+            return $data;
+        }
+
+        // ##########################################
+
+        /**
+         * @param $resourcePath
+         * @param array $params
+         *
+         * @return array|mixed
+         * @throws FacebookException
+         */
         protected function _submitToGraph($resourcePath, array $params)
         {
             // make sure that we have what we need
@@ -349,6 +311,51 @@
                 ->execute();
 
             // parse response
-            return $this->_parseGraphResponse($response);
+            $data = $this->_parseGraphResponse($response);
+
+            // handle error response
+            if (isset($data['error']))
+            {
+                $this->_handleErrorResponse($data);
+            }
+
+            return $data;
+        }
+
+        // ######################################
+
+        /**
+         * @param $response
+         *
+         * @throws FacebookException
+         */
+        protected function _handleErrorResponse($response)
+        {
+            $errorMessage = NULL;
+            $errorType = NULL;
+            $errorCode = NULL;
+            $errorSubcode = NULL;
+
+            if (isset($response['error']['message']))
+            {
+                $errorMessage = $response['error']['message'];
+            }
+
+            if (isset($response['error']['type']))
+            {
+                $errorType = $response['error']['type'];
+            }
+
+            if (isset($response['error']['code']))
+            {
+                $errorCode = $response['error']['code'];
+            }
+
+            if (isset($response['error']['error_subcode']))
+            {
+                $errorSubcode = $response['error']['error_subcode'];
+            }
+
+            throw new FacebookException($errorMessage, $errorType, $errorCode, $errorSubcode);
         }
     }

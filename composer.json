@@ -2,7 +2,7 @@
     "name": "simplon/facebook",
     "description": "Facebook Library",
     "homepage": "https://github.com/fightbulc/simplon_facebook",
-    "version": "0.6.3",
+    "version": "0.6.4",
     "type": "library",
     "keywords": ["facebook", "api", "http"],
     "license": "MIT",
