@@ -165,6 +165,48 @@
 
         /**
          * @param $accessToken
+         * @return FacebookPageGraphVo[]
+         */
+        public function getUserAccountsData($accessToken)
+        {
+            $params = [
+                'access_token' => $accessToken
+            ];
+
+            $data = $this->_requestGraph('/me/accounts', $params);
+
+            $pages = [];
+
+            foreach ($data['data'] as $page)
+            {
+                $pages[] = new FacebookPageGraphVo($page);
+            }
+
+            return $pages;
+        }
+
+        // ##########################################
+
+        /**
+         * @param $urlname
+         * @param $accessToken
+         * @return FacebookPageGraphVo
+         */
+        public function getPageData($urlname, $accessToken)
+        {
+            $params = [
+                'access_token' => $accessToken
+            ];
+
+            $data = $this->_requestGraph("/$urlname", $params);
+
+            return new FacebookPageGraphVo($data);
+        }
+
+        // ##########################################
+
+        /**
+         * @param $accessToken
          * @param $actionType
          * @param $objectType
          * @param $objectValue
