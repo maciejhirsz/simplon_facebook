@@ -207,6 +207,40 @@
 
         /**
          * @param $accessToken
+         * @param $facebookEventId
+         *
+         * @return array|mixed
+         */
+        public function setEventAttending($facebookEventId, $accessToken)
+        {
+            $params = [
+                'access_token' => $accessToken
+            ];
+
+            return $this->_submitToGraph($facebookEventId . '/attending', $params);
+        }
+
+        // ##########################################
+
+        /**
+         * @param $facebookEventId
+         * @param $accessToken
+         *
+         * @return array|mixed
+         */
+        public function setEventDeclined($facebookEventId, $accessToken)
+        {
+            $params = [
+                'access_token' => $accessToken
+            ];
+
+            return $this->_submitToGraph($facebookEventId . '/declined', $params);
+        }
+
+        // ##########################################
+
+        /**
+         * @param $accessToken
          * @param $actionType
          * @param $objectType
          * @param $objectValue
